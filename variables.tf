@@ -29,16 +29,3 @@ variable "db_password" {
   type        = string
   sensitive   = true
 }
-
-# --- Variáveis New Relic ---
-
-variable "newrelic_account_id" {
-  description = "ID da conta New Relic"
-  type        = string
-}
-
-variable "newrelic_api_key" {
-  description = "Chave de API de Usuário do New Relic (User API Key)"
-  type        = string
-  sensitive   = true
-}
