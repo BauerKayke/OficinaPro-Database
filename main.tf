@@ -12,38 +12,22 @@ provider "aws" {
   region = var.aws_region
 }
 
-# --- DATA SOURCES ---
-# Busca por recursos de rede que são criados pelo repositório 'oficinapro-infra'
-
-data "aws_vpc" "existing_vpc" {
-  tags = {
-    Name = "${var.project_name}-budget-vpc"
+# --- DATA SOURCE: LER O ESTADO DA REDE ---
+data "terraform_remote_state" "network" {
+  backend = "s3"
+  config = {
+    bucket = "fiap-oficinapro-kb-tfstate"
+    key    = "oficinapro/network/terraform.tfstate"
+    region = var.aws_region
   }
 }
-
-data "aws_subnets" "existing_public_subnets" {
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.existing_vpc.id]
-  }
-  tags = {
-    Name = "${var.project_name}-budget-public-subnet*"
-  }
-}
-
-data "aws_security_group" "k3s_sg" {
-  tags = {
-    Name = "${var.project_name}-k3s-sg"
-  }
-}
-
 
 # --- RECURSOS DO BANCO DE DADOS ---
 
 # RDS Subnet Group
 resource "aws_db_subnet_group" "budget_db_subnet_group" {
   name       = "${var.project_name}-budget-db-subnet-group"
-  subnet_ids = data.aws_subnets.existing_public_subnets.ids
+  subnet_ids = data.terraform_remote_state.network.outputs.public_subnet_ids # Lê da rede
 
   tags = {
     Name = "${var.project_name}-budget-db-subnet-group"
@@ -54,15 +38,18 @@ resource "aws_db_subnet_group" "budget_db_subnet_group" {
 resource "aws_security_group" "budget_db_sg" {
   name        = "${var.project_name}-rds-sg"
   description = "Security group para o banco de dados RDS PostgreSQL"
-  vpc_id      = data.aws_vpc.existing_vpc.id
+  vpc_id      = data.terraform_remote_state.network.outputs.vpc_id # Lê da rede
 
-  # Acesso PostgreSQL apenas do cluster K3s
+  # Regra de entrada: Acesso PostgreSQL
+  # IMPORTANTE: Como a aplicação ainda não tem SG, liberamos inicialmente a VPC.
+  # Quando a app for criada, o SG dela pode ser adicionado aqui em uma segunda execução
+  # ou via regra avulsa 'aws_security_group_rule' no módulo da app.
   ingress {
     from_port       = 5432
     to_port         = 5432
     protocol        = "tcp"
-    security_groups = [data.aws_security_group.k3s_sg.id]
-    description     = "Acesso PostgreSQL apenas do security group do K3s"
+    cidr_blocks     = ["10.0.0.0/16"] # Temporário: libera para a VPC inteira
+    description     = "Acesso PostgreSQL da VPC"
   }
 
   egress {
