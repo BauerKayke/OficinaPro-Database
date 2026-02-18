@@ -66,10 +66,10 @@ resource "aws_security_group" "budget_db_sg" {
 
 # RDS Instance otimizada (t3.micro - Free Tier eligible)
 resource "aws_db_instance" "budget_db" {
-  identifier = "${var.project_name}-budget-db"
+  identifier = "oficinapro-consolidated-db"  # Nome consistente com o atual
 
   engine         = "postgres"
-  engine_version = "15.10"
+  engine_version = "16.6"  # Versão mais recente e mais barata
   instance_class = "db.t3.micro"
 
   allocated_storage     = 20
@@ -92,6 +92,6 @@ resource "aws_db_instance" "budget_db" {
   monitoring_interval        = 0
 
   tags = {
-    Name = "${var.project_name}-budget-db"
+    Name = "oficinapro-consolidated-db"
   }
 }
