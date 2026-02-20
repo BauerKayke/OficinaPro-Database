@@ -17,7 +17,7 @@ data "terraform_remote_state" "network" {
   backend = "s3"
   config = {
     bucket = "fiap-oficinapro-ckm-tfstate"
-    key    = "oficinapro/network/terraform.tfstate"
+    key    = "fase4/network/terraform.tfstate"
     region = var.aws_region
   }
 }
